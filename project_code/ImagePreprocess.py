@@ -8,8 +8,15 @@ import multiprocessing as mp
 import warnings
 warnings.filterwarnings("ignore")
 
-IMAGE_FOLDER = '../../../full_set/stage1/'
-INPUT_LABELS = '../../../input/stage1_labels.csv'
+import sys
+
+if len(sys.argv) == 3:
+    IMAGE_FOLDER = sys.argv[1]
+    INPUT_LABELS = sys.argv[2]
+else:
+    IMAGE_FOLDER = '../../../full_set/stage1/'
+    INPUT_LABELS = '../../../input/stage1_labels.csv'
+
 IMAGE_SIZE = (120, 120)
 IMAGE_DEPTH = 30
 

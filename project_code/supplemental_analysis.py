@@ -8,9 +8,14 @@ import os
 from matplotlib import pyplot as plt
 from Inputs import *
 from sklearn.metrics import confusion_matrix, log_loss
+import sys
 
-IMAGE_FOLDER = '../../../full_set/stage1/'
-INPUT_LABELS = '../../../input/stage1_labels.csv'
+if len(sys.argv) == 3:
+    IMAGE_FOLDER = sys.argv[1]
+    INPUT_LABELS = sys.argv[2]
+else:
+    IMAGE_FOLDER = '../../../full_set/stage1/'
+    INPUT_LABELS = '../../../input/stage1_labels.csv'
 
 def supplemental_data_analysis():
     base_dir = '../supplemental_data/'
