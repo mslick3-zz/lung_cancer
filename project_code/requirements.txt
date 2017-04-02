@@ -1,0 +1,13 @@
+Keras==2.0.2
+dicom==0.9.9.post1
+matplotlib==2.0.0
+numpy==1.12.1
+pandas==0.19.2
+scikit-image==0.12.3
+scikit-learn==0.18.1
+scipy==0.18.1
+xgboost==0.6a2
+opencv-python==3.2.0.6
+mxnet==0.9.3a3
+SimpleITK==0.10.0
+hyperopt==0.1
