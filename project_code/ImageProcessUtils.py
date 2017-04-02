@@ -1,3 +1,6 @@
+"""
+This script has the image preprocessing utility functions
+"""
 from scipy import ndimage
 from skimage import measure, feature, morphology, segmentation
 import matplotlib.pyplot as plt
@@ -15,7 +18,7 @@ def normalize(image):
     Min-max image scaling
     :source: https://www.kaggle.com/gzuidhof/data-science-bowl-2017/full-preprocessing-tutorial/notebook
     :param image: a numpy array containing image pixel values
-    :return: a numpy array containing the image pixel values normalized in the range [0, 1]
+    :return: a numpy array containing the image pixel values normalized in the range [MIN_BOUND, MAX_BOUND]
     """
     image = (image - MIN_BOUND) / (MAX_BOUND - MIN_BOUND)
     image[image>(1-PIXEL_MEAN)] = 1.
@@ -219,7 +222,7 @@ def lung_segmentation(scan, depth, resize_image, normalize_image=True):
         segmented[i,:,:] = segment
         lung_volumes[i] = counts[0]
 
-    lung_volume = np.amax(1. - lung_volumes)
+    lung_volume = np.sum(1. - lung_volumes)
 
     if type(depth) == int:
         if depth > 0: #return image stack of most filled in lungs of specified depth

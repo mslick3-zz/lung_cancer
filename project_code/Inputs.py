@@ -1,3 +1,6 @@
+"""
+This script reads in files - either complete scans or the labeled training file
+"""
 import numpy as np # linear algebra
 import dicom
 import os

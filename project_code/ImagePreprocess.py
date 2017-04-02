@@ -1,3 +1,6 @@
+"""
+This script runs the preprocessing on all images - train and test. set the folder for images and input label file path
+"""
 import os
 from Inputs import *
 from ImageProcessUtils import *
@@ -24,8 +27,9 @@ def process_scan(patient_id):
     hu_pixels = resample(hu_pixels, patient_scan_data) #resample the data to account for varying pixel sizes
     segmented, lung_volume = lung_segmentation(hu_pixels, IMAGE_DEPTH, IMAGE_SIZE, normalize_image=True) #get segmented images and lung volume
     supplemental_data['lung_volume'] = [lung_volume] #append lung volume to supllemental dataset
+    supplemental_data['id'] = [patient_id]
     np.save('../processed_images/processed_patient_scan_{}.npy'.format(patient_id), segmented) #save processed image
-    supplemental_data.to_csv('../supplemental_data/processed_patient_supplemental_{}.npy'.format(patient_id)) #save supplemental data
+    supplemental_data.to_csv('../supplemental_data/processed_patient_supplemental_{}.csv'.format(patient_id)) #save supplemental data
     return supplemental_data
 
 def run():
@@ -45,7 +49,7 @@ def run():
     #run the patient preprocessing, 1 patient per CPU core available
     n_cpus = mp.cpu_count()
     pool = mp.Pool(n_cpus)  # Create a multiprocessing Pool
-    data = pool.map(process_scan, all_patients['id'][:3])  # proces data_inputs iterable with pool
+    data = pool.map(process_scan, all_patients['id'])  # proces data_inputs iterable with pool
     pool.close()
 
     #append all supplemental data to a final, complete dataset
