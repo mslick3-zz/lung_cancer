@@ -11,7 +11,7 @@ if len(sys.argv) == 4:
 else:
     IMAGE_FOLDER = '/datadrive/data/full_data/stage1'
     INPUT_LABELS = '/datadrive/data/stage1_labels.csv'
-    PROCESSED_DIRECTORY = '/datadrive/notebook/Adnan/tutorial_code/processed_images_tutorial'
+    PROCESSED_DIRECTORY = '/datadrive/project_code/cs6250_group_project/processed_images_tutorial/'
 
 PROCESSED_IMAGE_BASED_NAME = "processed_patient_scan_{}.npy"
 
@@ -70,9 +70,9 @@ def convolutional_neural_network(x):
     return output
 
 
-def train_neural_network(x, x_train, y_train, x_test, y_test):
+def train_neural_network(x, train_data, validation_data):
     prediction = convolutional_neural_network(x)
-    cost = tf.reduce_mean( tf.nn.softmax_cross_entropy_with_logits(prediction,y) )
+    cost = tf.reduce_mean( tf.nn.softmax_cross_entropy_with_logits(logits=prediction,labels=y) )
     optimizer = tf.train.AdamOptimizer(learning_rate=1e-3).minimize(cost)
 
     hm_epochs = 10
@@ -84,11 +84,11 @@ def train_neural_network(x, x_train, y_train, x_test, y_test):
 
         for epoch in range(hm_epochs):
             epoch_loss = 0
-            for idx, data in enumerate(x_train):
+            for data in train_data:
                 total_runs += 1
                 try:
                     X = data[0]
-                    Y = y_train[idx][1]
+                    Y = data[1]
                     _, c = sess.run([optimizer, cost], feed_dict={x: X, y: Y})
                     epoch_loss += c
                     successful_runs += 1
@@ -96,36 +96,46 @@ def train_neural_network(x, x_train, y_train, x_test, y_test):
                     # I am passing for the sake of notebook space, but we are getting 1 shaping issue from one
                     # input tensor. Not sure why, will have to look into it. Guessing it's
                     # one of the depths that doesn't come to 20.
+                    #print(str(e)) 
                     pass
                     #print(str(e))
 
             print('Epoch', epoch+1, 'completed out of',hm_epochs,'loss:',epoch_loss)
-
-            correct = tf.equal(tf.argmax(prediction, 1), tf.argmax(y, 1))
+            a = tf.argmax(prediction, 1)
+            b = tf.argmax(y, 1)
+            correct = tf.equal(a, b)
             accuracy = tf.reduce_mean(tf.cast(correct, 'float'))
-
-            print('Accuracy:',accuracy.eval({x:x_test, y:y_test}))
+            print('Accuracy:',accuracy.eval({x:[i[0] for i in validation_data], y:[i[1] for i in validation_data]}))
 
         print('Done. Finishing accuracy:')
         print('Accuracy:',accuracy.eval({x:[i[0] for i in validation_data], y:[i[1] for i in validation_data]}))
-
         print('fitment percent:',successful_runs/total_runs)
 
+def get_data():
+	all_patients, train_patients, test_patients = get_patients(IMAGE_FOLDER, INPUT_LABELS)
+	train_data_loaded = []
+	train_data_loaded = [load_npy(pat) for pat in train_patients.ix[:, 0]]
+	train_data_loaded_label = train_patients.ix[:, 1]
+	train_labels = []
+	for label in train_data_loaded_label:
+		if label == 1: train_labels.append(np.array([0,1]))
+		elif label == 0: train_labels.append(np.array([1,0]))
+	much_data = []
+	for indx in range(0,len(train_data_loaded)):
+		much_data.append([train_data_loaded[indx], train_labels[indx]]) 
+	
+	train_data = much_data[:-100]
+	validation_data = much_data[-100:]     
+	return train_data, validation_data 
+
 def run():
-    all_patients, train_patients, test_patients = get_patients(IMAGE_FOLDER, INPUT_LABELS)
-    train_data_loaded = [load_npy(pat) for pat in train_patients.ix[:, 0]]
-    train_data_loaded_label = train_patients.ix[:, 1]
-    train_labels = []
-    for label in train_data_loaded_label:
-        if label == 1: train_labels.append(np.array([0,1]))
-        elif label == 0: train_labels.append(np.array([1,0]))
-
-    x_train, x_test, y_train, y_test = train_test_split(train_data_loaded, train_labels, test_size=.2, random_state=2017)
-
-    train_neural_network(x, x_train, y_train, x_test, y_test)
+	train_data, validation_data = get_data()
+	train_neural_network(x, train_data, validation_data)
 
 if __name__ == '__main__':
     """
-    run 3d cnn using tensorflow
+    Run tensorflow from processed_images_tutorial
+    Run with /usr/bin/python2.7 (anaconda version is without gpu) 
     """
     run()
+
