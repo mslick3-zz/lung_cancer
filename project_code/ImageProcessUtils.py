@@ -195,7 +195,7 @@ def fast_lung_segment(image, fill_lung_structures=True):
     image[binary_image==0] = 0
     return image, binary_image
 
-def lung_segmentation(scan, depth, resize_image, normalize_image=True):
+def lung_segmentation(scan, resize_image, method=1, depth=30, normalize_image=True):
     """
     Runs segment_lung_mask3 for all images in a scan
     :param scan: 3d numpy array containing image scan pixel values
@@ -224,18 +224,35 @@ def lung_segmentation(scan, depth, resize_image, normalize_image=True):
 
     lung_volume = np.sum(1. - lung_volumes)
 
-    if type(depth) == int:
+    segmented_out = {1:None, 2:None, 3:None, 4:None}
+
+    if 1 in method:
         if depth > 0: #return image stack of most filled in lungs of specified depth
             lung_volume_ma = pd.rolling_mean(lung_volumes, depth)
             idx = np.argmin(lung_volume_ma[depth:]) + depth
-            segmented = segmented[idx:(idx+depth),:,:]
-    else:
-        if depth is None: #return average of all slices
-            segmented = np.mean(segmented, axis=0)
-        elif depth=='median': #return only middle slice
-            segmented = segmented[int(segmented.shape[0]/2.),:,:]
+            lower = idx
+            upper = min(idx+depth, segmented.shape[0]) +4
 
-    return segmented, lung_volume
+            if min(upper, segmented.shape[0]) - idx != depth:
+                upper = int(segmented.shape[0]/2)+15
+                lower = int(segmented.shape[0]/2)-15
+
+            segmented_out[1] = segmented[lower:upper,:,:]
+    if 2 in method: #return average of all slices
+        segmented_out[2] = np.mean(segmented, axis=0)
+    if 3 in method: #return only middle slice
+        segmented_out[3] = segmented[int(segmented.shape[0]/2.),:,:]
+    if 4 in method:
+        idx = np.linspace(0,segmented.shape[0],num=depth+1).astype(np.int)
+        segmented_accumulator = np.zeros((depth,)+resize_image)
+        for i in range(len(idx)-1):
+            lower = idx[i]
+            upper = idx[i+1]
+            segmented_accumulator[i, :, :] = np.mean(segmented[lower:upper,:,:], axis=0)
+        segmented_out[4] = segmented_accumulator
+
+
+    return segmented_out, lung_volume
 
 def extra_features(slice, pixel_spacing):
     """

@@ -10,15 +10,18 @@ warnings.filterwarnings("ignore")
 
 import sys
 
-if len(sys.argv) == 3:
+print(sys.argv)
+
+if len(sys.argv) >= 5:
     IMAGE_FOLDER = sys.argv[1]
     INPUT_LABELS = sys.argv[2]
+    OUTPUT_DIR = sys.argv[3]
+    METHOD = np.array(sys.argv[4].split(',')).astype(np.int8)
 else:
-    IMAGE_FOLDER = '../../../full_set/stage1/'
-    INPUT_LABELS = '../../../input/stage1_labels.csv'
+    print('enter valid set of parameters')
+    exit(1)
 
 IMAGE_SIZE = (120, 120)
-IMAGE_DEPTH = 30
 
 def process_scan(patient_id):
     """
@@ -32,11 +35,13 @@ def process_scan(patient_id):
     #collect supplemental data for middle image in the scan
     supplemental_data = extra_features(hu_pixels[int(n_scans/2),:,:], patient_scan_data[int(n_scans/2)].PixelSpacing) #supplemental features
     hu_pixels = resample(hu_pixels, patient_scan_data) #resample the data to account for varying pixel sizes
-    segmented, lung_volume = lung_segmentation(hu_pixels, IMAGE_DEPTH, IMAGE_SIZE, normalize_image=True) #get segmented images and lung volume
+    segmented, lung_volume = lung_segmentation(hu_pixels, IMAGE_SIZE, METHOD, normalize_image=True) #get segmented images and lung volume
     supplemental_data['lung_volume'] = [lung_volume] #append lung volume to supllemental dataset
     supplemental_data['id'] = [patient_id]
-    np.save('../processed_images/processed_patient_scan_{}.npy'.format(patient_id), segmented) #save processed image
-    supplemental_data.to_csv('../supplemental_data/processed_patient_supplemental_{}.csv'.format(patient_id)) #save supplemental data
+    for method in METHOD:
+        print(segmented[method].shape)
+        np.save(os.path.join(OUTPUT_DIR, "processed_images_" + str(method),'processed_patient_scan_{}.npy'.format(patient_id)), segmented[method]) #save processed image
+    supplemental_data.to_csv(os.path.join(OUTPUT_DIR,"supplemental_data","processed_patient_supplemental_{}.csv".format(patient_id))) #save supplemental data
     return supplemental_data
 
 def run():
@@ -48,10 +53,11 @@ def run():
     all_patients, train_patients, test_patients = get_patients(IMAGE_FOLDER, INPUT_LABELS)
 
     #if directories don't exist, make them
-    if not os.path.isdir("../processed_images"):
-        os.makedirs("../processed_images")
-    if not os.path.isdir("../supplemental_data"):
-        os.makedirs("../supplemental_data")
+    for method in METHOD:
+        if not os.path.isdir(os.path.join(OUTPUT_DIR,"processed_images_"+str(method))):
+            os.makedirs(os.path.join(OUTPUT_DIR,"processed_images_"+str(method)))
+    if not os.path.isdir(os.path.join(OUTPUT_DIR,"supplemental_data")):
+        os.makedirs(os.path.join(OUTPUT_DIR,"supplemental_data"))
 
     #run the patient preprocessing, 1 patient per CPU core available
     n_cpus = mp.cpu_count()
@@ -63,7 +69,7 @@ def run():
     supplemental_data = data[0]
     for df in data[1:]:
         supplemental_data = supplemental_data.append(df)
-    supplemental_data.to_csv('../supplemental_data/complete_supplemental_dataset.csv')
+    supplemental_data.to_csv(os.path.join(OUTPUT_DIR,"supplemental_data","complete_supplemental_dataset.csv"))
 
     return
 
