@@ -266,9 +266,9 @@ def lung_segmentation(scan, resize_image, method=1, depth=30, normalize_image=Tr
         segmented_out[5] = segmented
     if 6 in method:
         segmented_out[6] = []
-        seq = np.linspace(0,segmented.shape[0],segmented.shape[0]+1).clip(segmented.shape[0]).astype(np.int)
-        for i in range(len(seq)-3):
-            segmented_out[6].append(segmented[seq[i]:seq[i+3],:,:])
+        seq = np.arange(0, segmented.shape[0],3)
+        for i in range(len(seq)-1):
+            segmented_out[6].append(segmented[seq[i]:seq[i+1],:,:])
 
     return segmented_out, lung_volume
 

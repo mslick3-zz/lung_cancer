@@ -41,7 +41,7 @@ def process_scan(patient_id):
     for method in METHOD:
         if method == 6:
             for i in range(len(segmented[6])):
-                np.save(os.path.join(OUTPUT_DIR, "full_processed_images_" + str(method),'processed_patient_scan_{}_slice_{}.npy'.format(patient_id, i)), segmented[method])
+                np.save(os.path.join(OUTPUT_DIR, "full_processed_images_" + str(method),'processed_patient_scan_{}_slice_{}.npy'.format(patient_id, i)), segmented[method][i])
         else:
             np.save(os.path.join(OUTPUT_DIR, "full_processed_images_" + str(method),'processed_patient_scan_{}.npy'.format(patient_id)), segmented[method])  # save processed image
 
