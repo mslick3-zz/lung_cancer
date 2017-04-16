@@ -63,6 +63,17 @@ def audit_segmentation(im):
 
     return counts, good_segmentation
 
+def get_dicom_info(slices):
+    """
+    Get some attributes from the DICOM files
+    :param slices: dicom files for patient
+    :return: dictionary of attributes - age, gender, etc.
+    """
+    attributes = {'age': slices[0].get('PatientAge'),
+                  'gender': slices[0].get('PatientSex')
+                  }
+    return attributes
+
 def get_pixels_hu(slices):
     """
     Convert pixel values to HU scale
@@ -71,6 +82,7 @@ def get_pixels_hu(slices):
     :return: a 3d numpy array of pixel values for all slices for the patient
     """
     image = np.stack([s.pixel_array for s in slices])
+
     # Convert to int16 (from sometimes int16),
     # should be possible as values should always be low enough (<32k)
     image = image.astype(np.int16)
@@ -224,7 +236,7 @@ def lung_segmentation(scan, resize_image, method=1, depth=30, normalize_image=Tr
 
     lung_volume = np.sum(1. - lung_volumes)
 
-    segmented_out = {1:None, 2:None, 3:None, 4:None}
+    segmented_out = {1:None, 2:None, 3:None, 4:None, 5:None, 6:None}
 
     if 1 in method:
         if depth > 0: #return image stack of most filled in lungs of specified depth
@@ -243,18 +255,24 @@ def lung_segmentation(scan, resize_image, method=1, depth=30, normalize_image=Tr
     if 3 in method: #return only middle slice
         segmented_out[3] = segmented[int(segmented.shape[0]/2.),:,:]
     if 4 in method:
-        idx = np.linspace(0,segmented.shape[0],num=depth+1).astype(np.int)
+        idx = np.unique(np.linspace(0,segmented.shape[0],num=depth+1).astype(np.int))
         segmented_accumulator = np.zeros((depth,)+resize_image)
         for i in range(len(idx)-1):
             lower = idx[i]
             upper = idx[i+1]
             segmented_accumulator[i, :, :] = np.mean(segmented[lower:upper,:,:], axis=0)
         segmented_out[4] = segmented_accumulator
-
+    if 5 in method:
+        segmented_out[5] = segmented
+    if 6 in method:
+        segmented_out[6] = []
+        seq = np.linspace(0,segmented.shape[0],segmented.shape[0]+1).clip(segmented.shape[0]).astype(np.int)
+        for i in range(len(seq)-3):
+            segmented_out[6].append(segmented[seq[i]:seq[i+3],:,:])
 
     return segmented_out, lung_volume
 
-def extra_features(slice, pixel_spacing):
+def extra_features(slice, scan, pixel_spacing):
     """
     Method calculated the amount of blood, water, and fat in an image
     Values from https://en.wikipedia.org/wiki/Hounsfield_scale
@@ -278,8 +296,67 @@ def extra_features(slice, pixel_spacing):
     for key, value in feature_list.items():
         features[key] = [pix_area * np.sum((slice >= value[0]) & (slice <= value[1]))]
 
+    other_features = get_dicom_info(scan)
+    features.update(other_features)
+
     features = pd.DataFrame(features)
 
     return features
 
 
+def make_mask(center,diam,width,height,spacing,origin,depth, v_center, num_z, reshape=None):
+    """
+    source: https://github.com/booz-allen-hamilton/DSB3Tutorial/blob/master/tutorial_code/LUNA_mask_extraction.py
+    Center : centers of circles px -- list of coordinates x,y,z
+    diam : diameters of circles px -- diameter
+    widthXheight : pixel dim of image
+    spacing = mm/px conversion rate np array x,y,z
+    origin = x,y,z mm np.array
+    z = z position of slice in world coordinates mm
+    """
+    masks = np.zeros([depth, height, width])
+    def get_2d_mask(center, diam, z, width, height, spacing, origin):
+        mask = np.zeros([height, width])  # 0's everywhere except nodule swapping x,y to match img
+        # convert to nodule space from world coordinates
+
+        # Defining the voxel range in which the nodule falls
+        v_center = (center - origin) / spacing
+        v_diam = int(diam / spacing[0] + 5)
+        v_xmin = np.max([0, int(v_center[0] - v_diam) - 5])
+        v_xmax = np.min([width - 1, int(v_center[0] + v_diam) + 5])
+        v_ymin = np.max([0, int(v_center[1] - v_diam) - 5])
+        v_ymax = np.min([height - 1, int(v_center[1] + v_diam) + 5])
+
+        v_xrange = range(v_xmin, v_xmax + 1)
+        v_yrange = range(v_ymin, v_ymax + 1)
+
+        # Fill in 1 within sphere around nodule
+        for v_x in v_xrange:
+            for v_y in v_yrange:
+                p_x = spacing[0] * v_x + origin[0]
+                p_y = spacing[1] * v_y + origin[1]
+                if np.linalg.norm(center - np.array([p_x, p_y, z])) <= diam:
+                    mask[int((p_y - origin[1]) / spacing[1]), int((p_x - origin[0]) / spacing[0])] = 1.0
+        return mask
+
+    for i, i_z in enumerate(np.arange(int(v_center[2]) - 1, int(v_center[2]) + 2).clip(0, num_z - 1)):  # clip prevents going out of bounds in Z
+        mask = get_2d_mask(center, diam, i_z * spacing[2] + origin[2], width, height, spacing, origin)
+        masks[i,:,:] = mask
+
+    if reshape is not None:
+        zoom = np.array(reshape)/np.array(masks.shape)
+        masks = ndimage.interpolation.zoom(masks, zoom, mode='nearest')
+        masks[masks>0.1] = 1.0
+        masks[masks!=1.0] = 0.0
+
+    return masks
+
+def resize(image, output_size):
+    """
+    resize an image
+    :param image: input array
+    :param output_size: output size (tuple). same dimension as input size
+    :return: resized image array
+    """
+    zoom = np.array(output_size) / np.array(image.shape)
+    return ndimage.interpolation.zoom(image, zoom, mode='nearest')

@@ -16,6 +16,8 @@ if __name__ == '__main__':
 
     parser.add_argument('shape', action='store', help='output shape')
 
+    parser.add_argument('threshold', action='store', help='threshold', default=None)
+
     params = parser.parse_args()
 
     shape = np.array(params.shape.split(',')).astype(np.int)
@@ -29,4 +31,9 @@ if __name__ == '__main__':
         output_file = os.path.join(params.output_path, file)
         array = np.load(os.path.join(params.input_path, file))
         array = resize(array, shape, order=5, preserve_range=True)
+        if params.threshold is not None:
+            threshold = float(params.threshold)
+            array_out = array[:]
+            array_out[array<threshold] = 0.0
+            array_out[array>=threshold] = 1.0
         np.save(output_file, array)
