@@ -42,7 +42,11 @@ Requirments:
 
 1. Image Processing 
    *Folder: image_processing/ 
-   *Description: Uses ideas from our research, cited in our paper to transform the raw DICOM files to a format suitable for CNN.  The general process is to read the files, extract the pixel data and other metadata, transform the images, standardize the images, segment the lungs, and store the results.  We experimented with a lot of methods, so the code is configurable to output 1 or more of the processed image file formats we tested in our work.  The output of this process was used as an input to the Conv3d Model discussed in (2) below.
+   *Description: Uses ideas from our research, cited in our paper to transform the raw DICOM files to a format suitable for
+   	CNN.  The general process is to read the files, extract the pixel data and other metadata, transform the images,
+	standardize the images, segment the lungs, and store the results.  We experimented with a lot of methods, so the
+	code is configurable to output 1 or more of the processed image file formats we tested in our work.  The output of
+	this process was used as an input to the Conv3d Model discussed in (2) below.
    *References: Sources are cited in the code where applicable, and in our final paper submission. 
    *Run Instructions: 
    	python ImagePreprocess.py input_dir input_csv output_dir output_size method_list
