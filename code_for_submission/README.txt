@@ -49,7 +49,8 @@ Requirments:
 
 	For example, to run all of the methods we tested, I used the following command:
 
-	python ImagePreprocess.py ../../../data/full_data/stage1 ../../../data/stage1_labels.csv ../../../output_kaggle/ \ 		120,120 1,2,3,4,5,6
+	python ImagePreprocess.py ../../../data/full_data/stage1 ../../../data/stage1_labels.csv ../../../output_kaggle/ \
+	120,120 1,2,3,4,5,6
 
 2.  Conv3d Model on processed images 
     *Folder: conv3d/
