@@ -3,7 +3,7 @@ import numpy as np
 from Inputs import *
 import sys
 from sklearn.cross_validation import train_test_split
-
+from sklearn.metrics import log_loss
 if len(sys.argv) == 8:
     IMAGE_FOLDER = sys.argv[1]
     INPUT_LABELS = sys.argv[2]
@@ -16,12 +16,13 @@ else:
     IMAGE_FOLDER = '/datadrive/data/full_data/stage1'
     INPUT_LABELS = '/datadrive/data/stage1_labels.csv'
     PROCESSED_DIRECTORY = '/datadrive/output/processed_images_1small/'
-    FEATURE_MULT=54080
-    LEARNING_RATE = 0.1
-    IMG_SIZE_PX = 50
-    SLICE_COUNT = 20
+    FEATURE_MULT=28800
+    LEARNING_RATE = 0.01
+    IMG_SIZE_PX = 60
+    SLICE_COUNT = 5
 
 PROCESSED_IMAGE_BASED_NAME = "processed_patient_scan_{}.npy"
+TEST_LABELS = '/datadrive/data/test_labels.csv'
 
 n_classes = 2
 batch_size = 10
@@ -73,15 +74,13 @@ def convolutional_neural_network(x):
     prediction = tf.matmul(fc, weights['out'])+biases['out']
     cost = tf.reduce_mean( tf.nn.softmax_cross_entropy_with_logits(logits=prediction,labels=y) )
     optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE).minimize(cost)
-    #cost = tf.reduce_mean(-tf.reduce_sum(y * tf.log(prediction), reduction_indices=[1]))
-    #optimizer = tf.train.GradientDescentOptimizer(0.1).minimize(cost)
     return prediction, cost, optimizer 
 
 
 def train_neural_network(x, train_data_x, train_data_y, validation_data_x, validation_data_y, test_data):
     prediction, cost, optimizer = convolutional_neural_network(x)
     saver = tf.train.Saver()
-    hm_epochs = 10
+    hm_epochs = 100
     with tf.Session() as sess:
         sess.run(tf.initialize_all_variables())
 
@@ -102,9 +101,7 @@ def train_neural_network(x, train_data_x, train_data_y, validation_data_x, valid
                     # I am passing for the sake of notebook space, but we are getting 1 shaping issue from one
                     # input tensor. Not sure why, will have to look into it. Guessing it's
                     # one of the depths that doesn't come to 20.
-                    #print(str(e)) 
                     pass
-                    #print(str(e))
 
             print('Epoch', epoch+1, 'completed out of',hm_epochs,'loss:',epoch_loss)
             a = tf.argmax(prediction, 1)
@@ -114,51 +111,49 @@ def train_neural_network(x, train_data_x, train_data_y, validation_data_x, valid
             print('Accuracy:',accuracy.eval({x:[i for i in validation_data_x], y:[i for i in validation_data_y]}))
             Y_pred = tf.nn.softmax(prediction, name='softmax_tensor') #convert to probabilities 
             #pred = tf.argmax(Y_pred,1)
-            #pred = tf.nn.softmax(prediction)
-            print('starting predictions on test')
-            for idx in range(0, len(test_data)): 
-                patient = test_data[idx][0]
-                patient_data = test_data[idx][1]
+            pred = tf.nn.softmax(prediction)
+            #print('starting predictions on test')
+            validation_result = [] 
+            for idx in range(0, len(validation_data_x)): 
+                patient_data = validation_data_x[idx]
                 model_eval = Y_pred.eval(feed_dict={x:patient_data}, session = sess) #elt index 1 is cancer 
-                print ("{},{}".format(patient, model_eval[0][1])) 
-            #saver.save(sess, "saved_models/model_{}".format(epoch)) 
-            #print('done saving') 
+                validation_result.append(model_eval[0][1]) 
+            print(validation_result)
+            validation_data_cancer = [i[1] for i in validation_data_y] 
+            print(validation_data_cancer) 
+            print(log_loss(validation_data_cancer, validation_result))
 
         print('Done. Finishing accuracy:')
         print('Accuracy:',accuracy.eval({x:[i for i in validation_data_x], y:[i for i in validation_data_y]}))
         print('fitment percent:',successful_runs/total_runs)
 
 def get_data():
-	all_patients, train_patients, test_patients = get_patients(IMAGE_FOLDER, INPUT_LABELS)
+	all_patients, train_patients, test_patients = get_patients(IMAGE_FOLDER, INPUT_LABELS, TEST_LABELS)
 	train_data_loaded = []
 	train_data_loaded = [load_npy(pat) for pat in train_patients.ix[:, 0]]
 	test_data = []
-	test_data = [[pat, load_npy(pat)] for pat in test_patients.ix[:, 0]]
+	test_data = [load_npy(pat) for pat in test_patients.ix[:, 0]]
 	train_data_loaded_label = train_patients.ix[:, 1]
+	test_data_labels = test_patients.ix[:,1] 
 	train_labels = []
 	for label in train_data_loaded_label:
 		if label == 1: train_labels.append(np.array([0,1]))
 		elif label == 0: train_labels.append(np.array([1,0]))
-	much_data = []
-	for indx in range(0,len(train_data_loaded)):
-		much_data.append([train_data_loaded[indx], train_labels[indx]]) 
-	train_data_x, validation_data_x, train_data_y, validation_data_y = train_test_split(train_data_loaded, train_labels, test_size=0.2, random_state=42) 
-	#train_data_x, validation_data_x, train_data_y, validation_data_y = train_data_loaded[0:10], train_data_loaded[10:20], train_labels[0:10], train_labels[10:20]
-	#train_data = much_data[0:-100]
-	#validation_data = much_data[-100:]  
-	print(train_data_x[0].shape)
-	print(len(validation_data_x)) 
-	print(len(test_data))
-	return train_data_x, train_data_y, validation_data_x, validation_data_y, test_data
+	test_labels = []
+	for label in test_data_labels:
+		if label == 1: test_labels.append(np.array([0,1]))
+		elif label == 0: test_labels.append(np.array([1,0]))
+	print("train_data,img_size,{},labels_size,{}".format(len(train_data_loaded), len(train_labels)))
+	print("test_data,img_size,{},labels_size,{}".format(len(test_data), len(test_labels)))
+	return train_data_loaded, train_labels, test_data, test_labels
 
 def run():
-	train_data_x, train_data_y, validation_data_x, validation_data_y, test_data = get_data()
-	train_neural_network(x, train_data_x[0:400], train_data_y[0:400], validation_data_x[0:100], validation_data_y[0:100], test_data)
+	train_data_x, train_data_y, validation_data_x, validation_data_y  = get_data()
+	train_neural_network(x, train_data_x, train_data_y, validation_data_x, validation_data_y, [])
 
 if __name__ == '__main__':
     """
     Run tensorflow from processed_images_tutorial
-    Run with /usr/bin/python2.7 (anaconda version is without gpu) 
     """
     run()
 
