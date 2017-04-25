@@ -42,10 +42,14 @@ Requirments:
 
 1. Image Processing 
    *Folder: image_processing/ 
-   *Description: <<PLEASE_ADD_HERE>> 
-   *References: Full Preprocessing Tutorials: https://www.kaggle.com/gzuidhof/data-science-bowl-2017/full-preprocessing-tutorial
+   *Description: Uses ideas from our research, cited in our paper to transform the raw DICOM files to a format suitable for CNN.  The general process is to read the files, extract the pixel data and other metadata, transform the images, standardize the images, segment the lungs, and store the results.  We experimented with a lot of methods, so the code is configurable to output 1 or more of the processed image file formats we tested in our work.  The output of this process was used as an input to the Conv3d Model discussed in (2) below.
+   *References: Sources are cited in the code where applicable, and in our final paper submission. 
    *Run Instructions: 
-		<<<PLEASE_ADD_HERE>> 
+   	python ImagePreprocess.py input_dir input_csv output_dir output_size method_list
+
+	For example, to run all of the methods we tested, I used the following command:
+
+	python ImagePreprocess.py ../../../data/full_data/stage1 ../../../data/stage1_labels.csv ../../../output_kaggle/ \ 		120,120 1,2,3,4,5,6
 
 2.  Conv3d Model on processed images 
     *Folder: conv3d/
