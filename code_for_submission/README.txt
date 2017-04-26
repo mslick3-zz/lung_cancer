@@ -1,4 +1,4 @@
-Requirments: 
+Requirements: 
 	*Machine: Azure NC6 with TESLA K-80 GPU 
 	*Python Packages: NOTE: Use python2.7
 		*Required packages can be installed via `pip install -r project_code/requirements.txt'
@@ -58,7 +58,7 @@ Requirments:
 
 2.  Conv3d Model on processed images 
     *Folder: conv3d/
-    *Description: Uses TensorFlow implementation to run Covn3D model processed images. Prints out logloss and other metrics  
+    *Description: Uses TensorFlow implementation to run Conv3D model processed images. Prints out logloss and other metrics  
     *References: First pass through Data w/ 3D ConvNet: https://www.kaggle.com/sentdex/data-science-bowl-2017/first-pass-through-data-w-3d-convnet
     *Run Instructions: 
 	1. Set the dataset and prcessed images direcotories on the top of the script
@@ -100,3 +100,13 @@ Requirments:
     			│   └── utils_image_processing.py: utility script used by luna_3d_img_processing.py
     			└── model
         		    └── unet_train.py: Unet model to train on UNET images 
+
+4.	Conv2d Model on processed images
+    *Folder: 2dCNN/
+    *Description: Uses TensorFlow implementation to run Conv2D model processed images. Generates predictions and accuracy from TensorFlow
+    Only works on single iamges per the 2D implementation
+    *References: First pass through Data w/ 3D ConvNet: https://www.kaggle.com/sentdex/data-science-bowl-2017/first-pass-through-data-w-3d-convnet - modified for 2D nets
+    *Run Instructions: 
+	1. Set the dataset and prcessed images direcotories on the top of the script
+		- Set images directory to an average of slices
+    2. Run 2D_average_slice_CNN.py.py 
