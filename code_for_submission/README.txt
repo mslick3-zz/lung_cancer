@@ -110,3 +110,10 @@ Requirements:
 	1. Set the dataset and prcessed images direcotories on the top of the script
 		- Set images directory to an average of slices
     2. Run 2D_average_slice_CNN.py.py 
+
+5. Supplemental feature modeling
+    *Folder: supplemental/
+    *Description: Uses supplemental features extracted from the image processing step. Generates predictions and accuracy from tuned models
+    *Run Instructions: 
+	1. Set the dataset and prcessed images direcotories on the top of the script
+    2. Run supplemental_models.py
